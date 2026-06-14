@@ -1,0 +1,48 @@
+{
+  "models": [
+    {
+      "label": "Gemini 3.5 Flash (Medium)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    },
+    {
+      "label": "Gemini 3.5 Flash (High)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    },
+    {
+      "label": "Gemini 3.5 Flash (Low)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    },
+    {
+      "label": "Gemini 3.1 Pro (Low)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    },
+    {
+      "label": "Gemini 3.1 Pro (High)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    },
+    {
+      "label": "Claude Sonnet 4.6 (Thinking)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    },
+    {
+      "label": "Claude Opus 4.6 (Thinking)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    },
+    {
+      "label": "GPT-OSS 120B (Medium)",
+      "source": "agy models",
+      "notes": "Observed after Antigravity CLI 1.0.6 update"
+    }
+  ],
+  "notes": [
+    "Antigravity CLI 1.0.5+ exposes --model and models.",
+    "The bridge loads models dynamically from `agy models` first and uses this file as fallback."
+  ]
+}
