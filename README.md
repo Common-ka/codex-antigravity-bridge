@@ -1,24 +1,24 @@
 # Codex-Antigravity Bridge
 
-Этот bridge позволяет Codex делегировать задачи в Google Antigravity CLI и получать ответ обратно.
+This bridge allows Google Codex (or other MCP-compatible clients) to delegate tasks to the Google Antigravity CLI and receive responses back.
 
-На Windows `agy --print` сейчас может успешно завершаться, но возвращать пустой stdout при запуске из non-interactive subprocess. `agy_pty.py` обходит это через ConPTY (`pywinpty`): запускает `agy` как будто в настоящем терминале, читает терминальный вывод и отдает очищенный текст вызывающей стороне.
+On Windows, `agy --print` may exit successfully but return empty stdout when executed from a non-interactive subprocess. `agy_pty.py` bypasses this limitation using ConPTY (`pywinpty`). It spawns `agy` inside a pseudo-terminal (PTY), captures the terminal output, and returns the cleaned text to the caller.
 
-Итоговая схема:
+## Workflow
 
 ```text
 Codex -> MCP server -> agy_pty.py -> ConPTY -> agy.exe -> Antigravity
 ```
 
-Bridge определяет возможности установленного `agy` через capability probe. На Windows по умолчанию используется PTY backend, потому что прямой capture stdout для `agy -p` может быть пустым даже при успешном ответе модели.
+The bridge detects the capabilities of the installed `agy` CLI using a capability probe. On Windows, the PTY backend is used by default because direct stdout capture for `agy -p` can return empty output even if the model responds successfully.
 
-## Установка
+## Installation
 
 ```powershell
 python -m pip install --user -r requirements.txt
 ```
 
-Также нужен установленный Antigravity CLI:
+Additionally, ensure you have the Antigravity CLI installed:
 
 ```powershell
 where.exe agy
@@ -26,63 +26,63 @@ agy --version
 agy update
 ```
 
-## Быстрая Проверка
+## Quick Verification
 
-Проверка низкоуровневого wrapper:
+To verify the low-level wrapper:
 
 ```powershell
 python agy_pty.py "What is 2+2? Answer with one digit only." --timeout=60s --json
 ```
 
-Ожидаемый `output`:
+Expected `output`:
 
 ```json
 "4"
 ```
 
-Проверка MCP server через stdio:
+To verify the MCP server via stdio:
 
 ```powershell
 python mcp_server.py
 ```
 
-В обычной консоли эта команда будет ждать MCP-клиента. Для реальной проверки запускай ее через Codex MCP config или тестовый MCP client.
+When run in a standard console, this command will wait for an MCP client. For actual validation, register it in your Codex MCP config or run a test MCP client.
 
-## Выбор Модели
+## Model Selection
 
-Antigravity CLI 1.0.5+ поддерживает официальный флаг:
+Antigravity CLI 1.0.5+ supports the official `--model` flag:
 
 ```powershell
 agy --model "Gemini 3.5 Flash (High)" -p "Reply with exactly: OK"
 ```
 
-Bridge использует этот флаг автоматически, если capability probe видит `--model`. Это основной путь после обновления до `agy 1.0.6`.
+The bridge uses this flag automatically if the capability probe detects support for `--model` (default for `agy 1.0.6+`).
 
-Для старых версий CLI bridge сохраняет fallback через временное изменение:
+For older CLI versions, the bridge falls back to temporarily modifying:
 
 ```text
 %USERPROFILE%\.gemini\antigravity-cli\settings.json
 ```
 
-Порядок такой:
+The fallback sequence is:
 
-1. Bridge берет lock-файл рядом с `settings.json`.
-2. Запоминает исходные настройки.
-3. Временно выставляет `"model": "<label>"`.
-4. Запускает `agy`.
-5. Возвращает только исходное поле `model`, не перезаписывая весь `settings.json`.
+1. The bridge acquires a lock file near `settings.json`.
+2. It backs up original settings.
+3. Temporarily sets `"model": "<label>"`.
+4. Runs `agy`.
+5. Restores original configuration (reverting only the `model` field without overwriting other settings).
 
-Если процесс был жестко убит во время fallback model override, следующий запуск bridge увидит crash marker рядом с `settings.json` и восстановит старое значение `model`, если текущая модель все еще совпадает с оставленным override.
+If the process is hard-killed during fallback model override, the next bridge invocation will detect the crash marker near `settings.json` and restore the original model value (if the current setting still matches the left override).
 
-На `agy 1.0.6` `settings.json` для выбора модели не меняется.
+On `agy 1.0.6+`, `settings.json` is not modified for model selection.
 
-Диагностический пример:
+Diagnostic example:
 
 ```powershell
 python agy_pty.py "Reply with exactly: OK" --model "Gemini 3.5 Flash (High)"
 ```
 
-Список моделей bridge берет из `agy models` через PTY. Если CLI недоступен, используется fallback:
+The bridge fetches the list of models by running `agy models` via PTY. If the CLI is unavailable, it falls back to:
 
 ```text
 models.json
@@ -104,24 +104,24 @@ tool_timeout_sec = 600
 
 Tools:
 
-- `antigravity_delegate`: передать prompt в Antigravity и вернуть ответ.
-- `antigravity_delegate_async`: запустить делегацию в фоне и вернуть `job_id`.
-- `antigravity_run_status`: проверить статус async job.
-- `antigravity_get_summary`: получить summary async job.
-- `antigravity_get_result_path`: получить путь к полному результату async job.
-- `antigravity_smoke_test`: проверить полный путь, ожидает `MCP_OK`.
-- `antigravity_capabilities`: показать версию `agy`, flags/subcommands и recommended backend.
-- `antigravity_current_settings`: показать non-secret настройки bridge и trusted roots.
-- `antigravity_list_models`: показать model labels из `agy models`, с fallback на `models.json`.
+- `antigravity_delegate`: Sends a prompt to Antigravity and returns the response.
+- `antigravity_delegate_async`: Starts delegation in the background and returns a `job_id`.
+- `antigravity_run_status`: Checks the status of an async job.
+- `antigravity_get_summary`: Gets the summary of an async job.
+- `antigravity_get_result_path`: Gets the file path to the full result of an async job.
+- `antigravity_smoke_test`: Verifies the installation path, expects `MCP_OK`.
+- `antigravity_capabilities`: Displays `agy` version, flags/subcommands, and recommended backend.
+- `antigravity_current_settings`: Displays non-sensitive bridge settings and trusted roots.
+- `antigravity_list_models`: Lists model labels retrieved from `agy models` with fallback to `models.json`.
 
-`antigravity_delegate` поддерживает `return_mode`:
+`antigravity_delegate` supports `return_mode`:
 
-| Значение | Что возвращается в Codex |
+| Value | Returned to Codex |
 |---|---|
-| `full` | Полный ответ Antigravity inline + файл `result.md` |
-| `file_summary` | Только короткий summary, метаданные и путь к `result.md`; полный ответ остается в файле |
+| `full` | Complete response inline + writes `result.md` |
+| `file_summary` | Brief summary, metadata, and path to `result.md` (full response is kept in the file) |
 
-Для экономии токенов Codex используй `file_summary`:
+To save Codex tokens, use `file_summary`:
 
 ```json
 {
@@ -130,13 +130,13 @@ Tools:
 }
 ```
 
-Артефакты запусков пишутся сюда:
+Run artifacts are written to:
 
 ```text
 <cwd>/.agentboard/antigravity/runs/
 ```
 
-Эту папку не нужно коммитить. Bridge автоматически хранит только последние 50 запусков в каждом workspace.
+This directory should not be committed. The bridge automatically retains only the last 50 runs in each workspace.
 
 Capability probe:
 
@@ -146,42 +146,42 @@ Capability probe:
 }
 ```
 
-`include_live_probe: false` не тратит LLM-квоту: bridge читает только `agy --version` и `agy --help`. `include_live_probe: true` отправляет маленький smoke prompt и проверяет direct stdout против PTY backend.
+`include_live_probe: false` does not consume LLM quota (the bridge only reads `agy --version` and `agy --help`). `include_live_probe: true` sends a small smoke prompt and verifies direct stdout against the PTY backend.
 
 Prompt guardrails:
 
-- жесткий лимит: 12000 символов после добавления `mode: "advise"` wrapper-текста;
-- предупреждение: после 8000 символов;
-- при превышении лимита запрос не отправляется в Antigravity, а в run directory пишется только truncated preview.
+- Hard limit: 12,000 characters (after adding `mode: "advise"` wrapper text).
+- Warning: triggered after 8,000 characters.
+- If the hard limit is exceeded, the request is not sent to Antigravity, and only a truncated preview is written to the run directory.
 
-## Перенос В Другой Проект
+## Migration to Another Project
 
-Есть два режима переноса: project-local и global.
+There are two migration modes: project-local and global.
 
 ### Project-Local
 
-В этом режиме bridge лежит внутри каждого проекта.
+In this mode, the bridge resides within each project.
 
-1. Скопировать файлы репозитория в папку вашего проекта, например:
+1. Copy the repository files into your project folder, e.g.:
 
 ```text
 tools/antigravity-bridge/
 ```
 
-2. В новом проекте установить зависимости:
+2. Install dependencies in the new project:
 
 ```powershell
 python -m pip install --user -r tools\antigravity-bridge\requirements.txt
 ```
 
-3. Проверить Antigravity CLI:
+3. Verify Antigravity CLI:
 
 ```powershell
 where.exe agy
 agy --version
 ```
 
-4. Добавить локальные папки в `.gitignore` нового проекта:
+4. Add local run folders to `.gitignore` of the new project:
 
 ```gitignore
 .antigravitycli/
@@ -189,37 +189,37 @@ agy --version
 __pycache__/
 ```
 
-5. Один раз запустить smoke-test из корня нового проекта:
+5. Run a smoke-test once from the root of the new project:
 
 ```powershell
 python tools\antigravity-bridge\agy_pty.py "Reply with exactly: OK" --add-dir "<ABSOLUTE_PROJECT_PATH>" --timeout=60s
 ```
 
-6. Добавить MCP server в `%USERPROFILE%\.codex\config.toml`, заменив путь проекта:
+6. Add the MCP server to `%USERPROFILE%\.codex\config.toml`, substituting the project path:
 
 ```toml
 [mcp_servers.antigravity]
 command = "python"
-args = ["<ABSOLUTE_PROJECT_PATH>\\codex-antigravity-bridge\\mcp_server.py"]
+args = ["<ABSOLUTE_PROJECT_PATH>\\tools\\antigravity-bridge\\mcp_server.py"]
 enabled = true
 required = false
 startup_timeout_sec = 60
 tool_timeout_sec = 600
 ```
 
-7. Перезапустить Codex, чтобы он перечитал MCP config.
+7. Restart Codex to reload the MCP config.
 
-8. В новом проекте вызвать `antigravity_smoke_test`.
+8. Call `antigravity_smoke_test` in the new project.
 
 ### Global MCP
 
-В этом режиме bridge лежит в одном месте, например:
+In this mode, the bridge is placed in a single global location, e.g.:
 
 ```text
 C:\Users\username\.codex\tools\codex-antigravity-bridge\
 ```
 
-А рабочий проект передается через `cwd`/`add_dirs` в каждом MCP-вызове. Чтобы bridge знал, какие workspace разрешены, добавь env-переменные в MCP config:
+The active project path is passed via `cwd`/`add_dirs` in each MCP tool call. To let the bridge know which workspaces are trusted, add environment variables to the MCP config:
 
 ```toml
 [mcp_servers.antigravity]
@@ -235,42 +235,42 @@ ANTIGRAVITY_BRIDGE_WORKSPACE_ROOT = "C:\\path\\to\\your\\project"
 ANTIGRAVITY_BRIDGE_TRUSTED_ROOTS = "C:\\path\\to\\your\\project"
 ```
 
-`ANTIGRAVITY_BRIDGE_WORKSPACE_ROOT` задает default `cwd`, если tool-вызов не передал `cwd`. `ANTIGRAVITY_BRIDGE_TRUSTED_ROOTS` задает дополнительные разрешенные корни; несколько путей разделяются стандартным разделителем PATH для ОС (`;` на Windows).
+`ANTIGRAVITY_BRIDGE_WORKSPACE_ROOT` defines the default `cwd` if the tool call doesn't specify one. `ANTIGRAVITY_BRIDGE_TRUSTED_ROOTS` defines additional allowed roots; multiple paths are separated by the OS path separator (`;` on Windows).
 
-Если env-переменные не заданы, fallback остается project-local:
+If environment variables are not set, the fallback remains project-local:
 
 ```text
 BRIDGE_DIR.parent.parent
 ```
 
-Run artifacts всегда пишутся в workspace, то есть в `<resolved_cwd>/.agentboard/`, а не рядом с глобальным bridge.
+Run artifacts are always written to the active workspace (i.e. `<resolved_cwd>/.agentboard/`), not next to the global bridge scripts.
 
-## Что Проверить При Переносе
+## Troubleshooting
 
-Если `agy` пишет ошибку про symlink:
+If `agy` throws a symlink error:
 
 ```text
 A required privilege is not held by the client
 ```
 
-включи Windows Developer Mode и перезапусти терминал/Codex. Antigravity использует `.antigravitycli/` как локальную project-ссылку на свои настройки в `%USERPROFILE%\.gemini\config\projects`.
+Enable Windows Developer Mode and restart your terminal/Codex. Antigravity uses `.antigravitycli/` as a local project link to its settings in `%USERPROFILE%\.gemini\config\projects`.
 
-Если `antigravity_delegate` возвращает пустой ответ:
+If `antigravity_delegate` returns an empty response:
 
-- не вызывай `agy --print` напрямую;
-- проверь `agy_pty.py` smoke-test;
-- проверь, что установлен `pywinpty`;
-- проверь, что Antigravity CLI авторизован.
-- если `pywinpty` сломан или отсутствует, bridge вернет diagnostic warning и попробует subprocess fallback; на Windows такой fallback может не вернуть stdout.
+- Do not call `agy --print` directly;
+- Run `agy_pty.py` smoke-test;
+- Verify `pywinpty` is installed;
+- Verify the Antigravity CLI is authenticated.
+- If `pywinpty` is broken or missing, the bridge returns a diagnostic warning and falls back to standard subprocess execution (which may not capture stdout on Windows).
 
-Если запрос отклонен по размеру:
+If the prompt is rejected due to size:
 
-- не вставляй файлы целиком;
-- передай пути;
-- попроси Antigravity читать только конкретные файлы/секции.
+- Do not paste entire files;
+- Pass file paths;
+- Instruct Antigravity to read only specific files or sections.
 
-Если нужна другая модель:
+If you need a different model:
 
-- вызови `antigravity_list_models`;
-- передавай точный label в `model`;
-- если `agy models` не работает, обнови fallback `models.json`.
+- Call `antigravity_list_models`;
+- Pass the exact label in `model`;
+- If `agy models` fails, update the fallback `models.json`.
