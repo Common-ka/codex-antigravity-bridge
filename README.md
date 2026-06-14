@@ -1,4 +1,4 @@
-# Antigravity Bridge
+# Codex-Antigravity Bridge
 
 Этот bridge позволяет Codex делегировать задачи в Google Antigravity CLI и получать ответ обратно.
 
@@ -95,7 +95,7 @@ Codex config:
 ```toml
 [mcp_servers.antigravity]
 command = "python"
-args = ["C:\\path\\to\\antigravity-bridge\\mcp_server.py"]
+args = ["C:\\path\\to\\codex-antigravity-bridge\\mcp_server.py"]
 enabled = true
 required = false
 startup_timeout_sec = 60
@@ -200,7 +200,7 @@ python tools\antigravity-bridge\agy_pty.py "Reply with exactly: OK" --add-dir "<
 ```toml
 [mcp_servers.antigravity]
 command = "python"
-args = ["<ABSOLUTE_PROJECT_PATH>\\tools\\antigravity-bridge\\mcp_server.py"]
+args = ["<ABSOLUTE_PROJECT_PATH>\\codex-antigravity-bridge\\mcp_server.py"]
 enabled = true
 required = false
 startup_timeout_sec = 60
@@ -216,7 +216,7 @@ tool_timeout_sec = 600
 В этом режиме bridge лежит в одном месте, например:
 
 ```text
-C:\Users\username\.codex\tools\antigravity-bridge\
+C:\Users\username\.codex\tools\codex-antigravity-bridge\
 ```
 
 А рабочий проект передается через `cwd`/`add_dirs` в каждом MCP-вызове. Чтобы bridge знал, какие workspace разрешены, добавь env-переменные в MCP config:
@@ -224,7 +224,7 @@ C:\Users\username\.codex\tools\antigravity-bridge\
 ```toml
 [mcp_servers.antigravity]
 command = "python"
-args = ["C:\\Users\\username\\.codex\\tools\\antigravity-bridge\\mcp_server.py"]
+args = ["C:\\Users\\username\\.codex\\tools\\codex-antigravity-bridge\\mcp_server.py"]
 enabled = true
 required = false
 startup_timeout_sec = 60
