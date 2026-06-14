@@ -1,6 +1,6 @@
 # Codex-Antigravity Bridge
 
-This bridge allows Google Codex (or other MCP-compatible clients) to delegate tasks to the Google Antigravity CLI and receive responses back.
+This bridge allows Codex (or other MCP-compatible clients) to delegate tasks to the Google Antigravity CLI and receive responses back.
 
 On Windows, `agy --print` may exit successfully but return empty stdout when executed from a non-interactive subprocess. `agy_pty.py` bypasses this limitation using ConPTY (`pywinpty`). It spawns `agy` inside a pseudo-terminal (PTY), captures the terminal output, and returns the cleaned text to the caller.
 
